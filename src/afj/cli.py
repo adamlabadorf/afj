@@ -27,6 +27,10 @@ input. You only return executable code, and never wrap code in markdown code
 blocks or any other formatting."""
 
 def log(msg):
+    import click
+    ctx = click.get_current_context(silent=True)
+    if ctx is not None and ctx.obj is not None and ctx.obj.get('quiet', False):
+        return
     logging.info(msg)
 
 def find_afj_dir(start_dir=None):
@@ -55,14 +59,20 @@ def init_git_repo(script_dir):
         subprocess.run(['git', '-C', str(script_dir), 'init'], check=True)
 
 @click.group()
-def cli():
+@click.option('--quiet', is_flag=True, default=False, help='Suppress log output')
+def cli(quiet):
     """afj: AI-powered file modification and versioning CLI."""
+    import click
+    ctx = click.get_current_context()
+    ctx.ensure_object(dict)
+    ctx.obj['quiet'] = quiet
     pass
 
 @click.command()
 @click.argument('input_file', type=click.Path(exists=True))
 @click.argument('prompt', type=str)
-def mod_cmd(input_file, prompt):
+@click.pass_context
+def mod_cmd(ctx, input_file, prompt):
     """Modify a file using an LLM and version changes."""
     input_path = Path(input_file).resolve()
     afj_dir = find_afj_dir(start_dir=input_path.parent)
@@ -109,12 +119,28 @@ def mod_cmd(input_file, prompt):
     shutil.copy(str(new_file), str(input_path))
     log(f"Updated {input_path} with new version.")
 
+    # Pretty-print git diff
+    try:
+        diff_result = subprocess.run([
+            'git', '-C', str(script_dir), 'diff', 'HEAD~1', 'HEAD', '--', new_file.name
+        ], capture_output=True, text=True, check=True)
+        diff_output = diff_result.stdout
+        if diff_output:
+            log("Git diff of changes:")
+            for line in diff_output.splitlines():
+                log(line)
+        else:
+            log("No changes detected in git diff.")
+    except Exception as e:
+        log(f"Failed to get git diff: {e}")
+
 cli.add_command(mod_cmd, name='mod')
 cli.add_command(mod_cmd, name='modify')
 
 @click.command()
 @click.argument('input_file', type=click.Path(exists=True))
-def rev_cmd(input_file):
+@click.pass_context
+def rev_cmd(ctx, input_file):
     """Revert the script to the previous commit in its .afj repo."""
     input_path = Path(input_file).resolve()
     afj_dir = find_afj_dir(start_dir=input_path.parent)
@@ -150,7 +176,8 @@ cli.add_command(rev_cmd, name='revert')
 
 @click.command()
 @click.argument('input_file', type=click.Path(exists=True))
-def his_cmd(input_file):
+@click.pass_context
+def his_cmd(ctx, input_file):
     """Show the change history for the input script."""
     input_path = Path(input_file).resolve()
     afj_dir = find_afj_dir(start_dir=input_path.parent)
