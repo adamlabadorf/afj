@@ -77,6 +77,47 @@ afj my_script.py "Add a comment at the top."
 
 ---
 
+## Subcommands
+
+afj now supports multiple subcommands for advanced file versioning workflows:
+
+### `mod` / `modify`
+Modify a file using an LLM and version the changes (default functionality).
+
+```bash
+afj mod <input_file> <prompt>
+# or
+afj modify <input_file> <prompt>
+```
+
+- Modifies the file using your prompt and the LLM.
+- Saves the new version in `.afj/<filename>/`, commits to git, and replaces the original file.
+
+### `rev` / `revert`
+Revert the input script to the previous commit in its `.afj` repo and hard reset the repo.
+
+```bash
+afj rev <input_file>
+# or
+afj revert <input_file>
+```
+
+- Rolls back the file to the previous version as tracked by afj's internal git repo.
+- The file and the repo are both reset to that state.
+
+### `his` / `history`
+Show a simply formatted git log of the change history for the input script.
+
+```bash
+afj his <input_file>
+# or
+afj history <input_file>
+```
+
+- Outputs a concise commit history for the file as tracked by afj.
+
+---
+
 ## How the `afj` Command Works
 
 1. **Input**: You provide a file and a prompt.

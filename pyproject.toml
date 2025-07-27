@@ -21,7 +21,7 @@ pytest = "*"
 packages = [{include = "afj", from = "src"}]
 
 [tool.poetry.scripts]
-afj = "afj.cli:main"
+afj = "afj.cli:cli"
 
 
 [build-system]
