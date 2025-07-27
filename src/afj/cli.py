@@ -21,6 +21,11 @@ except ImportError:
 
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(message)s')
 
+SYSTEM_PROMPT = """You are a coding agent that writes and modifies code per the
+users request. You only output syntactically correct code in the language of the
+input. You only return executable code, and never wrap code in markdown code
+blocks or any other formatting."""
+
 def log(msg):
     logging.info(msg)
 
@@ -85,17 +90,12 @@ def mod_cmd(input_file, prompt):
             def prompt(self, prompt):
                 return MockResponse(prompt)
         model = MockModel()
-        system = "You are a coding agent that writes and modifies code per the users request. You only output syntactically correct code in the language of the input"
-        full_prompt = f"{system}\n\n{prompt}\n\n---\n{code_content}"
+        full_prompt = f"{SYSTEM_PROMPT}\n\n{prompt}\n\n---\n{code_content}"
         response = model.prompt(full_prompt)
         new_code = response.text()
     elif llm is not None:
-        system = "You are a coding agent that writes and modifies code per the users request. You only output syntactically correct code in the language of the input"
-        full_prompt = f"{system}\n\n{prompt}\n\n---\n{code_content}"
-        try:
-            model = llm.get_model("gpt-4o-mini")
-        except Exception:
-            model = llm.get_default_model()
+        full_prompt = f"{SYSTEM_PROMPT}\n\n{prompt}\n\n---\n{code_content}"
+        model = llm.get_model(llm.get_default_model())
         response = model.prompt(full_prompt)
         new_code = response.text()
     else:
